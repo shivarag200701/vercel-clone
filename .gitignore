@@ -1,0 +1,43 @@
+# Environment variables
+.env
+.env.local
+
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+build/
+*/dist/
+*/build/
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
+tsconfig.tsbuildinfo
+
+# Generated deployment builds
+src/output/
+*/src/output/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+
+# Temporary files
+.qodo/
+*/.qodo/
+*.tmp
+*.temp
+
+# Vite
+.vite/

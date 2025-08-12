@@ -1,0 +1,34 @@
+{
+  "name": "vercel_clone",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsx src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.864.0",
+    "@aws-sdk/client-s3": "^3.859.0",
+    "@aws-sdk/client-sqs": "^3.859.0",
+    "@aws-sdk/util-dynamodb": "^3.864.0",
+    "@types/express": "^5.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "redis": "^5.7.0",
+    "simple-git": "^3.28.0",
+    "typescript": "^5.9.2",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/node": "^24.2.0",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.20.3"
+  }
+}
