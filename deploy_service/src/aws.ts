@@ -15,7 +15,7 @@ import fs from "fs";
 import { execSyncCommand, getPath } from "./utils";
 import { updateDeploymentStatus } from "./dynamoDB";
 dotenv.config();
-console.log("process.env.AWS_ACCESS_KEY_ID", process.env.AWS_ACCESS_KEY_ID);
+
 
 const sqsClient = new SQSClient({
   region: process.env.AWS_REGION || "us-east-2",

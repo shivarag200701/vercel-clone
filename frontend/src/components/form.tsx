@@ -78,8 +78,8 @@ function Form() {
               <CardDescription>
                 <p>
                   Your app is deployed to{" "}
-                  <a href={`https://${id}.vercel.app`} target="_blank">
-                    {`http://${id}.vercel.com:3003/index.html`}
+                  <a href={`http://${id}.glider.com:3003/index.html`} target="_blank">
+                    {`http://${id}.glider.com:3003/index.html`}
                   </a>
                 </p>
               </CardDescription>
