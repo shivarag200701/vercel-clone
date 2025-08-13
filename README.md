@@ -196,6 +196,13 @@ DYNAMODB_TABLE_NAME=your_dynamodb_table_name
 ### Request Handler Service (Port 3003)
 - `GET /{*any}` - Serve deployed static files
 
+
+## 🏗️ Architecture
+
+This project follows a microservices architecture with four main services:
+
+![Vercel Architecture](./vercel-architecture.png)
+
 ## 🔧 Development
 
 ### Available Scripts
@@ -221,6 +228,7 @@ DYNAMODB_TABLE_NAME=your_dynamodb_table_name
 ## 📄 License
 
 This project is licensed under the ISC License.
+
 
 ---
 
