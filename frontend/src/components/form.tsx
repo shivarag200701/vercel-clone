@@ -7,10 +7,12 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
+
 import { Button } from "./ui/button";
 import { useState } from "react";
 import { Input } from "./ui/input";
 import axios from "axios";
+import StreamingLogs from "./Logs";
 
 function Form() {
   const [url, setUrl] = useState("");
@@ -18,17 +20,28 @@ function Form() {
   const [deploying, setDeploying] = useState(false);
   const [deployed, setDeployed] = useState(false);
   const [id, setId] = useState("");
+  const [showLogs, setShowLogs] = useState(false);
+  const [uploaderFinished, setUploaderFinished] = useState(false);
   const handleDeploy = async () => {
     setUploading(true);
+    setShowLogs(true);
+
+      const tempId = Math.random().toString(36).substring(2, 15);
+      setId(tempId);
+
     const response = await axios.post("http://localhost:3000/upload", {
       repoUrl: url,
     });
     const id = response.data.id;
     setId(id);
+    setUploading(false);
     setDeploying(true);
     const interval = setInterval(async () => {
       const response = await axios.get(`http://localhost:3000/status/${id}`);
       const status = response.data.status;
+      if (status === "uploaded"){
+        setUploaderFinished(true);
+      }
       if (status === "deployed") {
         clearInterval(interval);
         setDeploying(false);
@@ -38,7 +51,7 @@ function Form() {
   };
   return (
     <>
-      <Card className="w-xl h-auto">
+      <Card className="w-[1015px] h-auto">
         <CardHeader>
           <CardTitle className="text-3xl font-bold">
             Delpoy your GitHub Repository
@@ -70,6 +83,7 @@ function Form() {
           </Button>
         </CardFooter>
       </Card>
+      <StreamingLogs projectId={id} isVisible={showLogs} uploaderFinished={uploaderFinished} />
       {deployed && (
         <div className="mt-10">
           <Card>
@@ -87,6 +101,7 @@ function Form() {
           </Card>
         </div>
       )}
+     
     </>
   );
 }

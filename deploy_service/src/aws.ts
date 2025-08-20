@@ -12,8 +12,9 @@ import {
 import path from "path";
 import dotenv from "dotenv";
 import fs from "fs";
-import { execSyncCommand, getPath } from "./utils";
+import { execSyncCommandWithLogs, getPath } from "./utils";
 import { updateDeploymentStatus } from "./dynamoDB";
+import { addLog } from "./index";
 dotenv.config();
 
 
@@ -86,33 +87,40 @@ async function downloadAllFilesFromS3(prefix: string) {
         fs.writeFileSync(finalPath, fileContent);
         // downloadFiles.push(filePath);
       } catch (error) {
-        console.error(error);
+        addLog(prefix,`Error downloading file ${fileObj.Key}: ${error}`);
       }
     }
   }
 }
 
-async function build(targetDir: string) {
-  console.log(`Building project in ${targetDir}`);
+async function build(targetDir: string,projectId:string) {
+  addLog(projectId,`Building project in ${targetDir}`);
 
   const packageJsonPath = path.join(targetDir, "package.json");
   if (!fs.existsSync(packageJsonPath)) {
-    console.error("package.json not found");
+    addLog(projectId,"package.json not found");
     return false;
   }
-  const installResult = execSyncCommand("npm install", targetDir);
+  try{
+  console.log("npm install");
+  const installResult = await execSyncCommandWithLogs("npm install", targetDir, (log)=>addLog(projectId,log));
   if (!installResult) {
     console.error("npm install failed");
     return false;
   }
 
-  const buildResult = execSyncCommand("npm run build", targetDir);
+  const buildResult = await execSyncCommandWithLogs("npm run build", targetDir, (log)=>addLog(projectId,log));
   if (!buildResult) {
     console.error("npm run build failed");
     return false;
   }
-  console.log("build completed");
-  return true;
+    addLog(projectId, "build completed successfully");
+    return true;
+  } catch (error) {
+    addLog(projectId, `Build process failed with error: ${error}`);
+    console.log("build failed",error);
+    return false;
+  }
 }
 
 async function exportUpload(prefix: string) {
@@ -150,11 +158,10 @@ async function dequeue() {
 
   if (prefix) {
     await downloadAllFilesFromS3(prefix);
-    console.log("prefix downloaded");
+    addLog(prefix.split("/")[1],"downloaded all files from s3");
     const targetDir = path.join(__dirname, prefix || "");
-    await build(targetDir);
+    await build(targetDir,prefix.split("/")[1]);
     await exportUpload(prefix);
-    console.log("exportUpload completed");
     await updateDeploymentStatus(prefix.split("/")[1], "deployed");
   }
 
