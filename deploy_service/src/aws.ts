@@ -14,8 +14,11 @@ import dotenv from "dotenv";
 import fs from "fs";
 import { execSyncCommandWithLogs, getPath } from "./utils";
 import { updateDeploymentStatus } from "./dynamoDB";
-import { addLog } from "./index";
+import { sendLog } from "./index";
 dotenv.config();
+
+
+
 
 
 const sqsClient = new SQSClient({
@@ -87,37 +90,45 @@ async function downloadAllFilesFromS3(prefix: string) {
         fs.writeFileSync(finalPath, fileContent);
         // downloadFiles.push(filePath);
       } catch (error) {
-        addLog(prefix,`Error downloading file ${fileObj.Key}: ${error}`);
+        sendLog(JSON.stringify({type:"log",data:{message:`Error downloading file ${fileObj.Key}: ${error}`,timestamp:new Date().toLocaleString().slice(11,23)}}))
       }
     }
   }
 }
 
-async function build(targetDir: string,projectId:string) {
-  addLog(projectId,`Building project in ${targetDir}`);
+async function build(targetDir: string,projectId:string,receiptHandle:string) {
+  sendLog(JSON.stringify({type:"log",data:{message:`Building project in ${targetDir}`,timestamp:new Date().toLocaleString().slice(11,23)}}))
 
   const packageJsonPath = path.join(targetDir, "package.json");
   if (!fs.existsSync(packageJsonPath)) {
-    addLog(projectId,"package.json not found");
+    sendLog(JSON.stringify({type:"log",data:{message:`package.json not found`,timestamp:new Date().toLocaleString().slice(11,23)}}))
     return false;
   }
   try{
+   
+
   console.log("npm install");
-  const installResult = await execSyncCommandWithLogs("npm install", targetDir, (log)=>addLog(projectId,log));
+  const installResult = await execSyncCommandWithLogs("npm install", targetDir, (log)=>sendLog(JSON.stringify({type:"log",data:{message:log,timestamp:new Date().toLocaleString().slice(11,23)}})));
   if (!installResult) {
     console.error("npm install failed");
     return false;
   }
 
-  const buildResult = await execSyncCommandWithLogs("npm run build", targetDir, (log)=>addLog(projectId,log));
+  const buildResult = await execSyncCommandWithLogs("npm run build", targetDir, (log)=>sendLog(JSON.stringify({type:"log",data:{message:log,timestamp:new Date().toLocaleString().slice(11,23)}})));  
   if (!buildResult) {
     console.error("npm run build failed");
+
     return false;
   }
-    addLog(projectId, "build completed successfully");
+    sendLog(JSON.stringify({type:"log",data:{message:"build completed successfully",timestamp:new Date().toLocaleString().slice(11,23)}}))
     return true;
   } catch (error) {
-    addLog(projectId, `Build process failed with error: ${error}`);
+    sendLog(JSON.stringify({type:"log",data:{message:`Build process failed with error: ${error}`,timestamp:new Date().toLocaleString().slice(11,23)}}));
+    await sqsClient.send(new DeleteMessageCommand({
+      QueueUrl: queueUrl,
+      ReceiptHandle: receiptHandle,
+    }));
+    sendLog(JSON.stringify({type:"log",data:{message:"build failed, message deleted",timestamp:new Date().toLocaleString().slice(11,23)}}));
     console.log("build failed",error);
     return false;
   }
@@ -125,7 +136,14 @@ async function build(targetDir: string,projectId:string) {
 
 async function exportUpload(prefix: string) {
   const id = prefix.split("/")[1];
-  const filePath = path.join(__dirname, `./${prefix}/dist`);
+  let filePath = path.join(__dirname, `./${prefix}/dist`);
+  if(!fs.existsSync(filePath)){
+    filePath = path.join(__dirname, `./${prefix}/build`);
+    if(!fs.existsSync(filePath)){
+      sendLog(JSON.stringify({type:"log",data:{message:"build folder not found",timestamp:new Date().toLocaleString().slice(11,23)}}));
+      return false;
+    }
+  } 
   const allFilePaths = getPath(filePath);
   for (const filePath of allFilePaths) {
     const fileContent = fs.readFileSync(filePath);
@@ -154,22 +172,24 @@ async function dequeue() {
   const result = await sqsClient.send(SQScommand);
 
   const prefix = result.Messages?.[0]?.Body;
-  console.log("prefix", prefix);
-
-  if (prefix) {
-    await downloadAllFilesFromS3(prefix);
-    addLog(prefix.split("/")[1],"downloaded all files from s3");
-    const targetDir = path.join(__dirname, prefix || "");
-    await build(targetDir,prefix.split("/")[1]);
-    await exportUpload(prefix);
-    await updateDeploymentStatus(prefix.split("/")[1], "deployed");
-  }
+  console.log("prefix", prefix);  
 
   if (result.Messages?.[0]?.ReceiptHandle) {
     const deleteCommand = new DeleteMessageCommand({
       QueueUrl: queueUrl,
       ReceiptHandle: result.Messages?.[0]?.ReceiptHandle,
     });
+
+  if (prefix) {
+    await downloadAllFilesFromS3(prefix);
+    sendLog(JSON.stringify({type:"log",data:{message:"downloaded all files from s3",timestamp:new Date().toLocaleString().slice(11,23)}}));
+    const targetDir = path.join(__dirname, prefix || "");
+    await build(targetDir,prefix.split("/")[1],result.Messages?.[0]?.ReceiptHandle);
+    await exportUpload(prefix);
+    await updateDeploymentStatus(prefix.split("/")[1], "deployed");
+  }
+
+ 
 
     await sqsClient.send(deleteCommand);
     console.log("Message deleted");

@@ -8,11 +8,15 @@ import {
   CardTitle,
 } from "./ui/card";
 
+
+
+
 import { Button } from "./ui/button";
 import { useState } from "react";
 import { Input } from "./ui/input";
 import axios from "axios";
 import StreamingLogs from "./Logs";
+
 
 function Form() {
   const [url, setUrl] = useState("");
@@ -22,6 +26,7 @@ function Form() {
   const [id, setId] = useState("");
   const [showLogs, setShowLogs] = useState(false);
   const [uploaderFinished, setUploaderFinished] = useState(false);
+
   const handleDeploy = async () => {
     setUploading(true);
     setShowLogs(true);
@@ -83,7 +88,7 @@ function Form() {
           </Button>
         </CardFooter>
       </Card>
-      <StreamingLogs projectId={id} isVisible={showLogs} uploaderFinished={uploaderFinished} />
+      <StreamingLogs  projectId={id} isVisible={showLogs} uploaderFinished={uploaderFinished} />
       {deployed && (
         <div className="mt-10">
           <Card>

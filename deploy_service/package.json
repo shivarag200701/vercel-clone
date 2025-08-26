@@ -27,9 +27,11 @@
     "@aws-sdk/client-sqs": "^3.859.0",
     "@aws-sdk/util-dynamodb": "^3.864.0",
     "@types/express": "^5.0.3",
+    "@types/ws": "^8.18.1",
     "aws": "^0.0.3-2",
     "client-s3": "github:aws-sdk/client-s3",
     "dotenv": "^17.2.1",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "ws": "^8.18.3"
   }
 }

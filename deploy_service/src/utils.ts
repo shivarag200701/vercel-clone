@@ -9,10 +9,11 @@ export const execSyncCommandWithLogs = async (command: string, targetDir: string
      let output = "";
 
      child.stdout.on("data",(data)=>{
-      const log = data.toString()
-      output += log;
-      onLog(log);
-     });
+      const rawLog = data.toString()
+      output += rawLog;
+      const lines = rawLog.split("\n").filter((line:string)=>line.trim() !== "");
+      lines.forEach((line:string)=>onLog(line.trim()));
+    });
 
      child.stderr.on("data",(data)=>{
       const log = data.toString();

@@ -8,73 +8,46 @@ import path from "path";
 import enqueue, { listQueues } from "./sqs.ts";
 import dequeue from "./sqsDequeTest.ts";
 import { getDeploymentStatus, updateDeploymentStatus } from "./dynamoDB.ts";
+import { WebSocketServer } from "ws";
+import { createServer } from "http";
 const app = express();
 app.use(cors());
 app.use(express.json());
 const port = 3000;
 
-const deploymentLogs: { [key: string]: {message:string, timestamp:string}[] } = {};
-const activeConnections: { [key: string]: any[] } = {};
-const addLog = (id: string, log: string) => {
-  const timestamp = new Date().toISOString();
-  const logEntry = {
-    message: log,
-    timestamp: timestamp
-  };
-  
-  if(!deploymentLogs[id]){
-    deploymentLogs[id] = [];
-  }
-  deploymentLogs[id].push(logEntry);
-  // console.log(deploymentLogs);
-  console.log("activeConnections",activeConnections[id]);
+const server = createServer()
+const wss = new WebSocketServer({server})
+const clients = new Set()
 
-    if(activeConnections[id]){
-      activeConnections[id].forEach((res) => {
-        res.write(`data: ${JSON.stringify({type: "log", data: logEntry})}\n\n`);
-      });
+function sendLog(data:any){
+  clients.forEach((client:any)=>{
+    if(client.readyState === client.OPEN){
+      client.send(data);
     }
-  };
-
-app.get("/logs/stream/:id", async (req, res) => {
-  const {id} = req.params;
-  
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Cache-Control'
-});
-
-if(!activeConnections[id]){
-  activeConnections[id] = [];
+  })
 }
-activeConnections[id].push(res);
 
-  const existingLogs = deploymentLogs[id]||[];
-  existingLogs.forEach((log) => {
-    res.write(`data: ${JSON.stringify({type: "log", data: log})}\n\n`);
-  });
-
-
-  req.on("close", () => {
-    activeConnections[id] = activeConnections[id]?.filter((conn) => conn !== res) || [];
-  });
-});
+wss.on("connection",(ws)=>{
+  console.log("New connection");
+  clients.add(ws);
+  console.log("clients",clients);
+  ws.send("Connected to the ws of upload server");
+})
 
 app.post("/upload", async (req, res) => {
   const repoUrl = await req.body.repoUrl;
   const id = generate();
   res.status(200).send({ id });
 
-  addLog(id,`Your Repo URL is ${repoUrl} and your unique Session id is ${id}`);
+  setTimeout(()=>{
+    sendLog(JSON.stringify({type: "log", data: {message: `Your Repo URL is ${repoUrl} and your unique Session id is ${id}  `, timestamp: new Date().toLocaleString().slice(11, 23)}}));
+  },1000)
+
   try {
   const git = simpleGit();
   await git.clone(repoUrl, path.join(__dirname, `./output/${id}`));
-  // addLog(id,`Cloned the repo ${repoUrl} to ${path.join(__dirname, `./output/${id}`)}`);
+
   const allFilePaths = getPath(path.join(__dirname, `./output/${id}`));
-  // console.log("allFilePaths", allFilePaths);
 
   for (const filePath of allFilePaths) {
     await exportUpload(
@@ -82,16 +55,18 @@ app.post("/upload", async (req, res) => {
       filePath
     );
   }
-  addLog(id,`Uploaded the files to S3`);
+  setTimeout(()=>{
+    sendLog(JSON.stringify({type: "log", data: {message: `Uploaded the files to S3 `, timestamp: new Date().toLocaleString().slice(11, 23)}}));
+  },1000)
 
   enqueue(`output/${id}`);
-  addLog(id,`Enqueued the Id to SQS`);
+  setTimeout(()=>{
+    sendLog(JSON.stringify({type: "log", data: {message: `Enqueued the Id to SQS  `, timestamp: new Date().toLocaleString().slice(11, 23)}}));
+  },2000)
 
     await updateDeploymentStatus(id, "uploaded");
-    addLog(id,`Deployment status updated to uploaded`);
 
   } catch (error) {
-    addLog(id, `Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     res.status(500).send({ error: "Internal server error" });
     return;
   }
@@ -124,3 +99,7 @@ app.get("/status/:projectId", async (req, res) => {
 app.listen(port, () => {
   console.log(`App listening to port ${port}`);
 });
+
+server.listen(3001,()=>{
+  console.log("WebSocket Server is running on port 3001");
+})
