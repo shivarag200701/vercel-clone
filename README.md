@@ -43,6 +43,7 @@ This project follows a microservices architecture with four main services:
 - Tailwind CSS 4.1.11
 - Axios for API calls
 - ShadCN UI components
+- AWS
 
 ### Backend Services
 - Node.js
