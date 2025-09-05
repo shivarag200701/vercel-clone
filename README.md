@@ -7,7 +7,7 @@ A full-stack application that clones GitHub repositories and deploys them as sta
 This project follows a microservices architecture with four main services:
 
 ### Frontend Service
-- **Technology**: React + TypeScript + Vite + Tailwind CSS
+- **Technology**: React + TypeScript + Vite + Tailwind CSS + AWS
 - **Purpose**: User interface for uploading GitHub repository URLs
 - **Port**: 5173 (Vite dev server)
 
